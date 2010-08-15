@@ -1,17 +1,36 @@
 Revision history for Crypt-SSLeay
 =================================
 
-0.57_04
+0.57_05 2010-08-15 17:41:21 UTC
+
+- Fix for NO_PROXY support in Net::SSL (bug #57836)
+- Bump Net::SSL version number to 2.84_02 after changes
+- Fix file/dir permissions (bug #60338)
+- Review warnings when compiling SSLeay.xs against older versions of OpenSSL.
+  Warnings are due to OpenSSL.
+- Add clarification regarding $ENV{HTTPS_CA_FILE} and $ENV{HTTPS_CA_DIR} to the
+  POD.
+- Other POD related changes: 
+    * Remove historic information in README about platforms where the package
+      was successfully built.
+    * Reformat acknowledgements. TODO: Add more people.
+    * Fix link to Net-SSLeay.
+    * Add note about the --live-tests command line option
+    * Generate README from POD.
+    * Formatting fixes.
+    * Update copyright notice.
+
+0.57_04 2010-08-11 00:22:33 UTC
 
 - Reorganize Makefile.PL to break individual steps in to subroutines so as to
   facilitate localized future modifications. Whether there was any point to
   this remains to be seen.
-- In Makefile.PL, accommodate ActiveState+MingW configuration
+- In Makefile.PL, accommodate ActiveState+MingW configuration.
 - Pick the correct lib location for Strawberry Perl (bug #60230).
 - Apply fixes in bug reports #59312 and #33954 to Net/SSL.pm.
 - Bump version number in Net/SSL.pm to indicate development release.
 
-0.57_03 2010-08-09 20:12:30
+0.57_03 2010-08-09 20:12:30 UTC
 
 - If the last component of $inc_dir is 'openssl', set $inc_dir to its parent
   and set $prefix to 'openssl'. Otherwise, leave $inc_dir as is and set $prefix
