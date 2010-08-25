@@ -1,9 +1,9 @@
 --- #YAML:1.0
 name:               Crypt-SSLeay
-version:            0.57_05
+version:            0.58
 abstract:           OpenSSL support for LWP
 author:
-    - David Landgren
+    - A. Sinan Unur <nanis@cpan.org>
 license:            perl
 distribution_type:  module
 configure_requires:

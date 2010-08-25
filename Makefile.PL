@@ -38,17 +38,16 @@ write_crypt_ssleay_version_h( $pkg_config );
 
 show_build_information( $pkg_config, \@INC_FLAGS, \@LIB_FLAGS);
 
-my @license =
-    do {
-        my $version = $ExtUtils::MakeMaker::VERSION;
-        $version =~ tr/_//d;
-        $version} > 6.30
-    ? qw(LICENSE perl)
-    : ();
+my @license = do {
+    my $version = $ExtUtils::MakeMaker::VERSION;
+    $version =~ tr/_//d;
+    $version
+} > 6.3 ? (LICENSE => 'perl')
+        : ();
 
 WriteMakefile(
     NAME          => 'Crypt::SSLeay',
-    AUTHOR        => 'David Landgren',
+    AUTHOR        => 'A. Sinan Unur <nanis@cpan.org>',
     ABSTRACT_FROM => 'SSLeay.pm',
     VERSION_FROM  => 'SSLeay.pm',
     LIBS          => ["@LIB_FLAGS"],
@@ -179,7 +178,8 @@ sub parse_openssl_v096_or_later {
 sub parse_openssl_v095a_096 {
     my ($vstr) = @_;
 
-    # 0.9.5a to before 0.9.6 : high bit of PP is set in MNNFFPPS
+    # 0.9.5a to before 0.9.6 :
+    # high bit of PP is set in MNNFFPPS
 
     return parse_openssl_v096_or_later(
         sprintf '%08x', hex($vstr) & 0xfffff7ff
@@ -189,7 +189,8 @@ sub parse_openssl_v095a_096 {
 sub parse_openssl_v093dev_095a {
     my ($vstr) = @_;
 
-    # 0.9.3-dev to before 0.9.5a : MNNFFRBB : major, minor, fix, status (0-1), beta
+    # 0.9.3-dev to before 0.9.5a
+    # MNNFFRBB : major, minor, fix, status (0-1), beta
 
     return unless my @v = $vstr =~ /^(0)(09)(0[3-5])([0-1])(..)$/;
 
@@ -203,7 +204,8 @@ sub parse_openssl_v093dev_095a {
 sub parse_openssl_pre_v093dev {
     my ($vstr) = @_;
 
-    # prior to 0.9.3-dev, MNFP
+    # prior to 0.9.3-dev,
+    # MNFP : major, minor, fix, patch
 
     return unless my @v = $vstr =~ /^(0)(9)([12])([0-9])$/;
 
