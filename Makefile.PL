@@ -53,7 +53,12 @@ WriteMakefile(
     LIBS          => ["@LIB_FLAGS"],
     INC           => "@INC_FLAGS",
     NEEDS_LINKING => 1,
+    BUILD_REQUIRES => {
+        'Try::Tiny' => '0.09',
+        'Test::More' => '0.88',
+    },
     PREREQ_PM     => {
+        'LWP::Protocol::https' => '6.02',
         'MIME::Base64' => 0, # for Net::SSL
     },
     clean         => {
