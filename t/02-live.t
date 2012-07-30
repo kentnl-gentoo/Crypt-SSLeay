@@ -3,35 +3,6 @@ use warnings;
 use Test::More;
 use Try::Tiny;
 
-# Bail out early if network tests are not requested
-
-BEGIN {
-    my ($filename) = 'test.config';
-    diag("Reading configuration from '$filename' on $^O");
-
-    open my $config, '<', $filename
-        or fail("Cannot open '$filename': $!");
-
-    my $network_tests;
-
-    while (my $entry = <$config>) {
-
-        $entry =~ s/^\s+//;
-        $entry =~ s/\s+\z//;
-
-        my ($key, $val) = split /[ \t]+/, $entry, 2;
-        diag("$key : $val");
-
-        if ($key eq 'network_tests') {
-            $network_tests = $val;
-        }
-    }
-
-    unless ($network_tests) {
-        plan skip_all => "Network tests disabled";
-    }
-}
-
 # Make sure prerequisites are there
 
 BEGIN {
@@ -44,9 +15,13 @@ BEGIN {
 use constant URL => 'https://rt.cpan.org/';
 use constant PROXY_ADDR_PORT => 'localhost:3128';
 
-test_connect_through_proxy(PROXY_ADDR_PORT);
-
-test_connect(URL);
+unless ($ENV{CRYPT_SSLEAY_NO_LIVE_TEST}) {
+    test_connect_through_proxy(PROXY_ADDR_PORT);
+    test_connect(URL);
+}
+else {
+    diag("Network tests disabled");
+}
 
 done_testing;
 

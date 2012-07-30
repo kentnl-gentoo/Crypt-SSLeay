@@ -2,7 +2,7 @@ package Crypt::SSLeay;
 
 use strict;
 use vars '$VERSION';
-$VERSION = '0.60';
+$VERSION = '0.60_01';
 
 eval {
     require XSLoader;
@@ -432,8 +432,8 @@ users mailing list at L<mailto:openssl-users@openssl.org>. See
 L<http://www.openssl.org/support/community.html> for other mailing lists and
 archives.
 
-Please report all bugs at
-L<"http://rt.cpan.org/NoAuth/Bugs.html?Dist=Crypt-SSLeay">.
+Please report all bugs using
+L<rt.cpan.org|http://rt.cpan.org/NoAuth/Bugs.html?Dist=Crypt-SSLeay>.
 
 =head1 AUTHORS
 
@@ -442,7 +442,7 @@ maintained by Joshua Chamas, David Landgren, brian d foy and Sinan Unur.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2010 A. Sinan Unur
+Copyright (c) 2010-2012 A. Sinan Unur
 
 Copyright (c) 2006-2007 David Landgren
 
