@@ -24,4 +24,4 @@ no_index:
 requires:
   LWP::Protocol::https: 6.02
   MIME::Base64: 0
-version: 0.61_02
+version: 0.61_04
