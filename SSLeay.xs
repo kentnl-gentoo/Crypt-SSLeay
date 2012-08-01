@@ -25,27 +25,17 @@ extern "C" {
 #define PERL5 1
 #endif
 
-
-/* Makefile.PL no longer generates the following header file
- * #include "crypt_ssleay_version.h"
- * Among other things, Makefile.PL used to determine whether
- * to use #include<openssl/ssl.h> or #include<ssl.h> and
- * whether to use OPENSSL_free or free etc, but such distinctions
- * ceased to matter pre-2000. Crypt::SSLeay no longer supports
- * pre-2000 OpenSSL */
-
-#include<openssl/ssl.h>
-#include<openssl/crypto.h>
-#include<openssl/err.h>
-#include<openssl/rand.h>
-#include<openssl/pkcs12.h>
-
-#define CRYPT_SSLEAY_free OPENSSL_free
+/* ssl.h or openssl/ssl.h is included from the crypt_ssleay_version
+ * file which is written when building with perl Makefile.PL
+ * #include "ssl.h"
+ */
+#include "crypt_ssleay_version.h"
 
 #undef Free /* undo namespace pollution from crypto.h */
 #ifdef __cplusplus
 }
 #endif
+
 
 /* moved this out to Makefile.PL so user can 
  * see value being used printed during build
@@ -329,28 +319,32 @@ SSL_write(ssl, buf, ...)
            }
 
            /* try to handle incomplete writes properly
-            * see RT #64054
+            * see RT bug #64054 and RT bug #78695
             */
-           while (keep_trying_to_write) {
+           while (keep_trying_to_write)
+           {
                 int n = SSL_write(ssl, buf+offset, len);
-                if (n >= 0) {
+                int x = SSL_get_error(ssl, n);
+                
+                if
+                (
+                      (n  > 0) ||
+                    ( (n == 0) && (x == SSL_ERROR_ZERO_RETURN) )
+                )
+                {
                     keep_trying_to_write = 0;
                     RETVAL = newSViv(n);
                 }
-                else {
-                    int x = SSL_get_error(ssl, n);
-                    switch (x) {
-                        case SSL_ERROR_ZERO_RETURN:
-                            keep_trying_to_write = 0;
-                            RETVAL = newSViv(n);
-                            break;
-                        case SSL_ERROR_WANT_READ:
-                        case SSL_ERROR_WANT_WRITE:
-                            break;
-                        default:
-                            keep_trying_to_write = 0;
-                            RETVAL = &PL_sv_undef;
-                            break;
+                else
+                {
+                    if 
+                    (
+                        (x != SSL_ERROR_WANT_READ) &&
+                        (x != SSL_ERROR_WANT_WRITE)
+                    )
+                    {
+                        keep_trying_to_write = 0;
+                        RETVAL = &PL_sv_undef;
                     }
                 }
            }
@@ -392,32 +386,34 @@ SSL_read(ssl, buf, len,...)
            SvGROW(sv, offset + len + 1);
            buf = SvPVX(sv);  /* it might have been relocated */
 
-           /* try to handle incomplete reads properly
-            * see RT #64054
+           /* try to handle incomplete writes properly
+            * see RT bug #64054 and RT bug #78695
             */
-
            while (keep_trying_to_read) {
                 int n = SSL_read(ssl, buf+offset, len);
-                if (n > 0) {
+                int x = SSL_get_error(ssl, n);
+
+                if 
+                (   
+                      (n  > 0) || 
+                    ( (n == 0) && (x == SSL_ERROR_ZERO_RETURN) )
+                )
+                {
                     SvCUR_set(sv, offset + n);
                     buf[offset + n] = '\0';
                     keep_trying_to_read = 0;
                     RETVAL = newSViv(n);
                 }
-                else {
-                    int x = SSL_get_error(ssl, n);
-                    switch (x) {
-                        case SSL_ERROR_ZERO_RETURN:
-                            keep_trying_to_read = 0;
-                            RETVAL = newSViv(n);
-                            break;
-                        case SSL_ERROR_WANT_READ:
-                        case SSL_ERROR_WANT_WRITE:
-                            break;
-                        default:
-                            keep_trying_to_read = 0;
-                            RETVAL = &PL_sv_undef;
-                            break;
+                else
+                {
+                    if
+                    ( 
+                        (x != SSL_ERROR_WANT_READ) && 
+                        (x != SSL_ERROR_WANT_WRITE) 
+                    ) 
+                    {
+                        keep_trying_to_read = 0;
+                        RETVAL = &PL_sv_undef;
                     }
                 }
            }

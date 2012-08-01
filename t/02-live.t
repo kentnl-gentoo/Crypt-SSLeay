@@ -3,6 +3,35 @@ use warnings;
 use Test::More;
 use Try::Tiny;
 
+# Bail out early if network tests are not requested
+
+BEGIN {
+    my ($filename) = 'test.config';
+    diag("Reading configuration from '$filename' on $^O");
+
+    open my $config, '<', $filename
+        or fail("Cannot open '$filename': $!");
+
+    my $network_tests;
+
+    while (my $entry = <$config>) {
+
+        $entry =~ s/^\s+//;
+        $entry =~ s/\s+\z//;
+
+        my ($key, $val) = split /[ \t]+/, $entry, 2;
+        diag("$key : $val");
+
+        if ($key eq 'network_tests') {
+            $network_tests = $val;
+        }
+    }
+
+    unless ($network_tests) {
+        plan skip_all => "Network tests disabled";
+    }
+}
+
 # Make sure prerequisites are there
 
 BEGIN {
@@ -12,16 +41,13 @@ BEGIN {
     use_ok('HTTP::Request');
 }
 
+use constant METHOD => 'HEAD';
 use constant URL => 'https://rt.cpan.org/';
 use constant PROXY_ADDR_PORT => 'localhost:3128';
 
-unless ($ENV{CRYPT_SSLEAY_NO_LIVE_TEST}) {
-    test_connect_through_proxy(PROXY_ADDR_PORT);
-    test_connect(URL);
-}
-else {
-    diag("Network tests disabled");
-}
+test_connect_through_proxy(PROXY_ADDR_PORT);
+
+test_connect(METHOD, URL);
 
 done_testing;
 
@@ -71,7 +97,7 @@ sub test_connect_through_proxy {
 }
 
 sub test_connect {
-    my ($url) = @_;
+    my ($method, $url) = @_;
 
     diag('[RT #73755] Cheat by disabling LWP::UserAgent host verification');
 
@@ -82,10 +108,10 @@ sub test_connect {
 
     my $req = HTTP::Request->new;
 
-    $req->method('HEAD');
+    $req->method($method);
     $req->uri($url);
 
-    my $test_name = 'HEAD https://rt.cpan.org/';
+    my $test_name = "$method $url";
     my $res;
 
     try {
