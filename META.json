@@ -25,9 +25,6 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "File::Basename" : "0",
-            "File::Spec" : "0",
-            "OpenSSL::Versions" : "0.002",
             "Test::More" : "0.88",
             "Try::Tiny" : "0.09"
          }
@@ -45,5 +42,5 @@
       }
    },
    "release_status" : "testing",
-   "version" : "0.61_05"
+   "version" : "0.62_01"
 }
