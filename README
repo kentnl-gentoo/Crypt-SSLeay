@@ -347,7 +347,7 @@ SUPPORT
     and archives.
 
     Please report all bugs at
-    "/rt.cpan.org/NoAuth/Bugs.html?Dist=Crypt-SSLeay"" in "http:.
+    <http://rt.cpan.org/NoAuth/Bugs.html?Dist=Crypt-SSLeay>.
 
 AUTHORS
     This module was originally written by Gisle Aas, and was subsequently
@@ -364,5 +364,6 @@ COPYRIGHT
 
 LICENSE
     This program is free software; you can redistribute it and/or modify it
-    under the same terms as Perl itself.
+    under the terms of Artistic License 2.0. See
+    <http://www.perlfoundation.org/artistic_license_2_0>.
 
