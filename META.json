@@ -25,6 +25,8 @@
    "prereqs" : {
       "build" : {
          "requires" : {
+            "ExtUtils::CBuilder" : "0.280205",
+            "File::Spec" : "0",
             "Test::More" : "0.88",
             "Try::Tiny" : "0.09"
          }
@@ -42,5 +44,5 @@
       }
    },
    "release_status" : "testing",
-   "version" : "0.65_01"
+   "version" : "0.65_02"
 }

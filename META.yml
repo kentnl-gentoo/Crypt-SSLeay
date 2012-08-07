@@ -6,6 +6,8 @@ author:
   - 'Joshua Chamas'
   - 'Gisle Aas'
 build_requires:
+  ExtUtils::CBuilder: 0.280205
+  File::Spec: 0
   Test::More: 0.88
   Try::Tiny: 0.09
 configure_requires:
@@ -24,4 +26,4 @@ no_index:
 requires:
   LWP::Protocol::https: 6.02
   MIME::Base64: 0
-version: 0.65_01
+version: 0.65_02
