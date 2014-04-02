@@ -198,6 +198,12 @@ sub get_cipher {
     *$self->{ssl_ssl}->get_cipher(@_);
 }
 
+sub pending {
+    my $self = shift;
+    $self = $REAL{$self} || $self;
+    *$self->{ssl_ssl}->pending(@_);
+}
+
 sub ssl_context {
     my $self = shift;
     $self = $REAL{$self} || $self;
@@ -420,6 +426,11 @@ sub proxy {
     }
 
     $proxy_server =~ s|\Ahttps?://||i;
+    # sanitize the end of the string too
+    # see also http://www.nntp.perl.org/group/perl.libwww/2012/10/msg7629.html
+    # and https://github.com/nanis/Crypt-SSLeay/pull/1
+    # Thank you Mark Allen and YigangX Wen
+    $proxy_server =~ s|(:[1-9][0-9]{0,4})/\z|$1|;
     $proxy_server;
 }
 
@@ -521,6 +532,11 @@ object.
 Attempts to read up to 32KiB of data from the socket. Returns
 C<undef> if nothing was read, otherwise returns the data as
 a scalar.
+
+=item pending
+
+Provides access to OpenSSL's C<pending> attribute on the SSL connection
+object.
 
 =item getline
 

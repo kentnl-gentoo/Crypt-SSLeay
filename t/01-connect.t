@@ -1,5 +1,7 @@
 use strict;
 use Test::More tests => 8;
+use if ($^O ne 'MSWin32'), 'POSIX';
+eval "setlocale(LC_MESSAGES, 'C');" if $^O ne 'MSWin32';
 
 use Net::SSL;
 
@@ -59,7 +61,9 @@ SKIP: {
         'getlines() not implemented'
     );
 
-    is( $sock->blocking, 1, 'socket is blocking' );
+    # RT #90803: Don't whether $sock->blocking returns 1 or 0.
+    # Instead, test true/false.
+    ok( $sock->blocking, 'socket is blocking' );
     $sock->blocking(0);
-    is( $sock->blocking, 0, 'socket is now non-blocking' );
+    ok( !$sock->blocking, 'socket is now non-blocking' );
 }
