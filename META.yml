@@ -7,11 +7,13 @@ author:
   - 'Gisle Aas'
 build_requires:
   ExtUtils::MakeMaker: '0'
-  Test::More: '0.88'
+  Test::More: '0.19'
   Try::Tiny: '0.09'
 configure_requires:
+  Devel::CheckLib: '0.99'
   ExtUtils::CBuilder: '0.280205'
-  File::Spec: '0'
+  Getopt::Long: '0'
+  Path::Class: '0.26'
 dynamic_config: 1
 generated_by: 'ExtUtils::MakeMaker version 6.94, CPAN::Meta::Converter version 2.140640'
 license: artistic_2
@@ -29,4 +31,4 @@ requires:
   perl: '5.006'
 resources:
   repository: https://github.com/nanis/Crypt-SSLeay
-version: 0.65_04
+version: 0.65_05
