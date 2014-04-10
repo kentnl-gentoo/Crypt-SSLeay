@@ -27,7 +27,7 @@
          "requires" : {
             "ExtUtils::MakeMaker" : "0",
             "Test::More" : "0.19",
-            "Try::Tiny" : "0.09"
+            "Try::Tiny" : "0.19"
          }
       },
       "configure" : {
@@ -36,7 +36,8 @@
             "ExtUtils::CBuilder" : "0.280205",
             "Getopt::Long" : "0",
             "IO::Intereactive::Tiny" : "0",
-            "Path::Class" : "0.26"
+            "Path::Class" : "0.26",
+            "Try::Tiny" : "0.19"
          }
       },
       "runtime" : {
@@ -53,5 +54,5 @@
          "url" : "https://github.com/nanis/Crypt-SSLeay"
       }
    },
-   "version" : "0.65_07"
+   "version" : "0.65_08"
 }

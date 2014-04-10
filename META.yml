@@ -8,13 +8,14 @@ author:
 build_requires:
   ExtUtils::MakeMaker: '0'
   Test::More: '0.19'
-  Try::Tiny: '0.09'
+  Try::Tiny: '0.19'
 configure_requires:
   Devel::CheckLib: '0.99'
   ExtUtils::CBuilder: '0.280205'
   Getopt::Long: '0'
   IO::Intereactive::Tiny: '0'
   Path::Class: '0.26'
+  Try::Tiny: '0.19'
 dynamic_config: 1
 generated_by: 'ExtUtils::MakeMaker version 6.94, CPAN::Meta::Converter version 2.140640'
 license: artistic_2
@@ -32,4 +33,4 @@ requires:
   perl: '5.006'
 resources:
   repository: https://github.com/nanis/Crypt-SSLeay
-version: 0.65_07
+version: 0.65_08
