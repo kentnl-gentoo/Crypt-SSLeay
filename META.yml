@@ -13,6 +13,7 @@ configure_requires:
   Devel::CheckLib: '0.99'
   ExtUtils::CBuilder: '0.280205'
   Getopt::Long: '0'
+  IO::Intereactive::Tiny: '0'
   Path::Class: '0.26'
 dynamic_config: 1
 generated_by: 'ExtUtils::MakeMaker version 6.94, CPAN::Meta::Converter version 2.140640'
@@ -31,4 +32,4 @@ requires:
   perl: '5.006'
 resources:
   repository: https://github.com/nanis/Crypt-SSLeay
-version: 0.65_05
+version: 0.65_06
