@@ -33,4 +33,4 @@ requires:
   perl: '5.006'
 resources:
   repository: https://github.com/nanis/Crypt-SSLeay
-version: 0.65_10
+version: 0.65_11
