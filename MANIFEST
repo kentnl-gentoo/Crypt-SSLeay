@@ -11,6 +11,7 @@ typemap
 certs/ca-bundle.crt
 certs/notacacert.pem
 certs/notacakeynopass.pem
+inc/IO/Interactive/Tiny.pm
 lib/Crypt/SSLeay/CTX.pm
 lib/Crypt/SSLeay/Conn.pm
 lib/Crypt/SSLeay/Err.pm
@@ -24,6 +25,8 @@ t/00-basic.t
 t/01-connect.t
 t/02-live.t
 t/03-version.t
+t/boilerplate.t
+t/manifest.t
 META.yml                                 Module meta-data (added by MakeMaker)
 
 META.json                                Module JSON meta-data (added by MakeMaker)

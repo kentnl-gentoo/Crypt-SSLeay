@@ -89,22 +89,29 @@ PROTOTYPES: DISABLE
 
 MODULE = Crypt::SSLeay         PACKAGE = Crypt::SSLeay::Err PREFIX = ERR_
 
-char*
-ERR_get_error_string()
-  CODE:
-    unsigned long l;
-    char buf[1024];
+#define CRYPT_SSLEAY_ERR_BUFSIZE 1024
 
-    if(!(l=ERR_get_error()))
-       RETVAL=NULL;
-    else {
-       ERR_error_string(l,buf);
-       RETVAL=buf;
-    }
-  OUTPUT:
-    RETVAL
+const char *
+ERR_get_error_string()
+    PREINIT:
+        unsigned long code;
+        char buf[ CRYPT_SSLEAY_ERR_BUFSIZE ];
+
+    CODE:
+        if ((code = ERR_get_error()) == 0) {
+            RETVAL = NULL;
+        }
+        else {
+            /* www.openssl.org/docs/crypto/ERR_error_string.html */
+            ERR_error_string_n(code, buf, CRYPT_SSLEAY_ERR_BUFSIZE);
+            RETVAL = buf;
+        }
+    OUTPUT:
+        RETVAL
 
 MODULE = Crypt::SSLeay    PACKAGE = Crypt::SSLeay::CTX    PREFIX = SSL_CTX_
+
+#define CRYPT_SSLEAY_RAND_BUFSIZE 1024
 
 SSL_CTX*
 SSL_CTX_new(packname, ssl_version)
@@ -113,11 +120,10 @@ SSL_CTX_new(packname, ssl_version)
      CODE:
         SSL_CTX* ctx;
         static int bNotFirstTime;
-        char buf[1024];
-        int rand_bytes_read;
+        char buf[ CRYPT_SSLEAY_RAND_BUFSIZE ];
 
         if(!bNotFirstTime) {
-            SSLeay_add_all_algorithms();
+            OpenSSL_add_all_algorithms();
             SSL_load_error_strings();
             ERR_load_crypto_strings();
             SSL_library_init();
@@ -126,12 +132,19 @@ SSL_CTX_new(packname, ssl_version)
 
         /**** Code from Devin Heitmueller, 10/3/2002 ****/
         /**** Use /dev/urandom to seed if available  ****/
-        rand_bytes_read = RAND_load_file("/dev/urandom", 1024);
-        if (rand_bytes_read <= 0) {
+        /* see also
+         * http://sockpuppet.org/blog/2014/02/25/safely-generate-random-numbers/
+         */
+        /* Also, http://wiki.openssl.org/index.php/Random_Numbers#Seeds
+         * seems to indicate maybe we should not be doing this ourselves
+         */
+        if (RAND_load_file("/dev/urandom", CRYPT_SSLEAY_RAND_BUFSIZE)
+            != CRYPT_SSLEAY_RAND_BUFSIZE)
+        {
             /* Couldn't read /dev/urandom, just seed off
              * of the stack variable (the old way)
              */
-            RAND_seed(buf,sizeof buf);
+            RAND_seed(buf, CRYPT_SSLEAY_RAND_BUFSIZE);
         }
 
         if(ssl_version == 23) {
@@ -181,8 +194,8 @@ SSL_CTX_use_PrivateKey_file(ctx, filename ,mode)
 int
 SSL_CTX_use_pkcs12_file(ctx, filename, password)
      SSL_CTX* ctx
-     char* filename
-     char* password
+     const char *filename
+     const char *password
      PREINIT:
         FILE *fp;
         EVP_PKEY *pkey;
@@ -437,15 +450,19 @@ SSL_get_verify_result(ssl)
         OUTPUT:
            RETVAL
 
+#define CRYPT_SSLEAY_SHARED_CIPHERS_BUFSIZE 512
+
 char*
 SSL_get_shared_ciphers(ssl)
-        SSL* ssl
-        PREINIT:
-           char buf[512];
-        CODE:
-           RETVAL = SSL_get_shared_ciphers(ssl, buf, sizeof(buf));
-        OUTPUT:
-           RETVAL
+    SSL* ssl
+    PREINIT:
+        char buf[ CRYPT_SSLEAY_SHARED_CIPHERS_BUFSIZE ];
+    CODE:
+        RETVAL = SSL_get_shared_ciphers(
+                    ssl, buf, CRYPT_SSLEAY_SHARED_CIPHERS_BUFSIZE
+                 );
+    OUTPUT:
+        RETVAL
 
 char*
 SSL_get_cipher(ssl)
@@ -519,11 +536,10 @@ VERSION_openssl_version()
     OUTPUT:
         RETVAL
 
-SV *
-VERSION_openssl_hex_version()
+long
+VERSION_openssl_version_number()
     CODE:
-
-        RETVAL = newSVpvf("0x%8.8x", (unsigned) OPENSSL_VERSION_NUMBER);
+        RETVAL = OPENSSL_VERSION_NUMBER;
     OUTPUT:
         RETVAL
 
