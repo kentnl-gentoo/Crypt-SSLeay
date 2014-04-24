@@ -37,7 +37,7 @@ requires:
   perl: '5.006'
 resources:
   repository: https://github.com/nanis/Crypt-SSLeay
-version: '0.68'
+version: '0.70'
 x_build:
   recommends:
     Devel::CheckLib: '0.99'
