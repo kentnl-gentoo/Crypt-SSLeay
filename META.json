@@ -53,13 +53,13 @@
          }
       }
    },
-   "release_status" : "testing",
+   "release_status" : "stable",
    "resources" : {
       "repository" : {
          "url" : "https://github.com/nanis/Crypt-SSLeay"
       }
    },
-   "version" : "0.65_15",
+   "version" : "0.66",
    "x_build" : {
       "recommends" : {
          "Devel::CheckLib" : "0.99"
