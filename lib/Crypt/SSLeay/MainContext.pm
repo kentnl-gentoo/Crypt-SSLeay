@@ -4,39 +4,55 @@ package Crypt::SSLeay::MainContext;
 
 use strict;
 use Carp ();
+use Exporter qw ( import );
+
+use vars qw( @EXPORT @EXPORT_OK );
+@EXPORT = ();
+@EXPORT_OK = qw( main_ctx );
 
 require Crypt::SSLeay::CTX;
 
-my $ctx = &main_ctx();
+# The following list is taken, with appreciation, from
+# Ristic, I (2013) "OpenSSL Cookbook", Feisty Duck Ltd
+# http://amzn.to/1z8rDdj
+#
+use constant CRYPT_SSLEAY_DEFAULT_CIPHER_LIST => join(
+    q{:}, qw(
+        kEECDH+ECDSA
+        kEECDH
+        kEDH
+        HIGH
+        +SHA
+        +RC4
+        RC4
+        !aNULL
+        !eNULL
+        !LOW
+        !3DES
+        !MD5
+        !EXP
+        !DSS
+        !PSK
+        !SRP
+        !kECDH
+        !CAMELLIA
+    )
+);
 
-sub main_ctx { 
-    my $ssl_version = shift || 23;
+sub main_ctx {
+    my $ctx = Crypt::SSLeay::CTX->new(
+        $ENV{CRYPT_SSLEAY_ALLOW_SSLv3} ? 1 : 0
+    );
 
-    my $ctx = Crypt::SSLeay::CTX->new($ssl_version);
-    $ctx->set_cipher_list($ENV{CRYPT_SSLEAY_CIPHER})
-      if $ENV{CRYPT_SSLEAY_CIPHER};    
-
-    $ctx;
-}
-
-my %sub_cache = ('main_ctx' => \&main_ctx );
-
-sub import {
-    my $pkg = shift;
-    my $callpkg = caller();
-    my @func = @_;
-    for (@func) {
-        s/^&//;
-        Carp::croak("Can't export $_ from $pkg") if /\W/;;
-        my $sub = $sub_cache{$_};
-        unless ($sub) {
-            my $method = $_;
-            $method =~ s/^main_ctx_//;  # optional prefix
-            $sub = $sub_cache{$_} = sub { $ctx->$method(@_) };
-        }
-        no strict 'refs';
-        *{"${callpkg}::$_"} = $sub;
+    if ($ENV{CRYPT_SSLEAY_CIPHER}) {
+        $ctx->set_cipher_list($ENV{CRYPT_SSLEAY_CIPHER});
     }
+    else {
+        $ctx->set_cipher_list(
+            CRYPT_SSLEAY_DEFAULT_CIPHER_LIST
+        );
+    }
+    $ctx;
 }
 
 1;

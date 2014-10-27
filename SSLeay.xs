@@ -1,9 +1,12 @@
-/*
- * $Id: SSLeay.xs,v 1.2 2000/05/10 16:37:25 ben Exp $
- * Copyright 1998 Gisle Aas.
+/* Copyright (c) 2010-2014 A. Sinan Unur <nanis@cpan.org>
+ * Copyright (c) 2006-2007 David Landgren
+ * Copyright (c) 1999-2003 Joshua Chamas
+ * Copyright (c) 1998 Gisle Aas
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the same terms as Perl itself.
+ * This library is free software. You can use, and distribute it under the
+ * terms of Artistic License version 2.0:
+ * http://www.perlfoundation.org/artistic_license_2_0
+ *
  */
 
 #ifdef __cplusplus
@@ -12,11 +15,6 @@ extern "C" {
 #include "EXTERN.h"
 #include "perl.h"
 
-/* CRYPT_SSLEAY_free() will not be #defined to be free() now that we're no
- * longer supporting pre-2000 OpenSSL.
-#define NO_XSLOCKS
-*/
-
 #include "XSUB.h"
 
 /* build problem under openssl 0.9.6 and some builds of perl 5.8.x */
@@ -24,19 +22,12 @@ extern "C" {
 #define PERL5 1
 #endif
 
-/* Makefile.PL no longer generates the following header file
- * #include "crypt_ssleay_version.h"
- * Among other things, Makefile.PL used to determine whether
- * to use #include<openssl/ssl.h> or #include<ssl.h> and
- * whether to use OPENSSL_free or free etc, but such distinctions
- * ceased to matter pre-2000. Crypt::SSLeay no longer supports
- * pre-2000 OpenSSL */
-
-#include <openssl/ssl.h>
+#include <openssl/bio.h>
 #include <openssl/crypto.h>
 #include <openssl/err.h>
-#include <openssl/rand.h>
 #include <openssl/pkcs12.h>
+#include <openssl/rand.h>
+#include <openssl/ssl.h>
 
 #define CRYPT_SSLEAY_free OPENSSL_free
 
@@ -45,43 +36,57 @@ extern "C" {
 }
 #endif
 
+/* See https://www.openssl.org/docs/ssl/SSL_CTX_new.html
+ * The list of protocols available can later be limited using the
+ * SSL_OP_NO_SSLv2, SSL_OP_NO_SSLv3, SSL_OP_NO_TLSv1, SSL_OP_NO_TLSv1_1 and
+ * SSL_OP_NO_TLSv1_2 options of the SSL_CTX_set_options() or
+ * SSL_set_options() functions.
+ */
 
-#if SSLEAY_VERSION_NUMBER >= 0x0900
-#define CRYPT_SSL_CLIENT_METHOD SSLv3_client_method()
-#else
-#define CRYPT_SSL_CLIENT_METHOD SSLv2_client_method()
-#endif
+#define CRYPT_SSL_CLIENT_METHOD SSLv23_client_method()
 
-static void InfoCallback(const SSL *s,int where,int ret)
-    {
-    const char *str;
-    int w;
+static void
+info_callback(const SSL *s, int where, int ret) {
+    BIO *bio_err = BIO_new_fp(stderr, BIO_NOCLOSE);
+    int w = where & ~SSL_ST_MASK;
+    const char *mode = (w & SSL_ST_CONNECT) ? "SSL_connect"
+                     : (w & SSL_ST_ACCEPT)  ? "SSL_accept"
+                     : "unknown"
+    ;
 
-    w = where & ~SSL_ST_MASK;
-
-    if(w & SSL_ST_CONNECT)
-       str="SSL_connect";
-    else if(w & SSL_ST_ACCEPT)
-       str="SSL_accept";
-    else
-       str="undefined";
-
-    if(where & SSL_CB_LOOP) {
-       fprintf(stderr,"%s:%s\n",str,SSL_state_string_long(s));
+    if (where & SSL_CB_LOOP) {
+        BIO_printf(bio_err, "%s: %s\n", mode, SSL_state_string_long(s));
+        return;
     }
-    else if(where & SSL_CB_ALERT) {
-       str=(where & SSL_CB_READ)?"read":"write";
-       fprintf(stderr,"SSL3 alert %s:%s:%s\n",str,
-           SSL_alert_type_string_long(ret),
-           SSL_alert_desc_string_long(ret));
-       }
-    else if(where & SSL_CB_EXIT) {
-       if(ret == 0)
-         fprintf(stderr,"%s:failed in %s\n",str,SSL_state_string_long(s));
-       else if (ret < 0)
-         fprintf(stderr,"%s:error in %s\n",str,SSL_state_string_long(s));
-       }
+
+    if (where & SSL_CB_ALERT) {
+        BIO_printf(
+            bio_err, "SSL/TLS alert %s: %s: %s\n",
+            (where & SSL_CB_READ) ? "read" : "write",
+            SSL_alert_type_string_long(ret),
+            SSL_alert_desc_string_long(ret)
+        );
+        return;
     }
+
+    if (where & SSL_CB_EXIT) {
+        if (ret == 0) {
+            BIO_printf(
+                bio_err, "%s: failed in %s\n",
+                mode,  SSL_state_string_long(s)
+            );
+            return;
+        }
+        if (ret < 0) {
+            BIO_printf(
+                bio_err, "%s:error in %s\n",
+                mode, SSL_state_string_long(s)
+            );
+            return;
+        }
+    }
+}
+
 
 MODULE = Crypt::SSLeay                PACKAGE = Crypt::SSLeay
 
@@ -114,13 +119,13 @@ MODULE = Crypt::SSLeay    PACKAGE = Crypt::SSLeay::CTX    PREFIX = SSL_CTX_
 #define CRYPT_SSLEAY_RAND_BUFSIZE 1024
 
 SSL_CTX*
-SSL_CTX_new(packname, ssl_version)
-     SV* packname
-     int ssl_version
+SSL_CTX_new(package,allow_sslv3)
+     SV *package
+     int allow_sslv3
      CODE:
         SSL_CTX* ctx;
         static int bNotFirstTime;
-        char buf[ CRYPT_SSLEAY_RAND_BUFSIZE ];
+        size_t i;
 
         if(!bNotFirstTime) {
             OpenSSL_add_all_algorithms();
@@ -130,38 +135,49 @@ SSL_CTX_new(packname, ssl_version)
             bNotFirstTime = 1;
         }
 
-        /**** Code from Devin Heitmueller, 10/3/2002 ****/
-        /**** Use /dev/urandom to seed if available  ****/
-        /* ASU: 2014/04/23 It looks like it is OK to leave
-         * this in. See following thread:
-         * http://security.stackexchange.com/questions/56469/
+        /* Add to entropy using Bytes::Random::Secure::random_bytes
+         * See also http://security.stackexchange.com/questions/56469/
          */
-       if (RAND_load_file("/dev/urandom", CRYPT_SSLEAY_RAND_BUFSIZE)
-            != CRYPT_SSLEAY_RAND_BUFSIZE)
-        {
-            /* Couldn't read /dev/urandom, just seed off
-             * of the stack variable (the old way)
-             */
-            RAND_seed(buf, CRYPT_SSLEAY_RAND_BUFSIZE);
-        }
+        do {
+            dSP;
+            int count;
+            SV *random_bytes;
 
-        if(ssl_version == 23) {
-            ctx = SSL_CTX_new(SSLv23_client_method());
-        }
-        else if(ssl_version == 3) {
-            ctx = SSL_CTX_new(SSLv3_client_method());
+            ENTER;
+            SAVETMPS;
+            PUSHMARK(SP);
+            XPUSHs(sv_2mortal(newSViv(CRYPT_SSLEAY_RAND_BUFSIZE)));
+            PUTBACK;
+            count = call_pv("Bytes::Random::Secure::random_bytes", G_SCALAR);
+            SPAGAIN;
+            if (count != 1) {
+                croak("Failed to get random bytes\n");
+            }
+            random_bytes = POPs;
+            RAND_seed(
+                SvPVbyte_nolen(random_bytes),
+                CRYPT_SSLEAY_RAND_BUFSIZE
+            );
+            PUTBACK;
+            FREETMPS;
+            LEAVE;
+        } while (0);
+
+        ctx = SSL_CTX_new(CRYPT_SSL_CLIENT_METHOD);
+        if (allow_sslv3) {
+            SSL_CTX_set_options(ctx,
+                SSL_OP_ALL |
+                SSL_OP_NO_SSLv2
+            );
         }
         else {
-#ifndef OPENSSL_NO_SSL2
-            /* v2 is the default */
-            ctx = SSL_CTX_new(SSLv2_client_method());
-#else
-            /* v3 is the default */
-            ctx = SSL_CTX_new(SSLv3_client_method());
-#endif
+            SSL_CTX_set_options(ctx,
+                SSL_OP_ALL |
+                SSL_OP_NO_SSLv2 |
+                SSL_OP_NO_SSLv3
+            );
         }
 
-        SSL_CTX_set_options(ctx,SSL_OP_ALL|0);
         SSL_CTX_set_default_verify_paths(ctx);
         SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
         RETVAL = ctx;
@@ -252,40 +268,36 @@ SSL_CTX_set_verify(ctx)
 MODULE = Crypt::SSLeay        PACKAGE = Crypt::SSLeay::Conn        PREFIX = SSL_
 
 SSL*
-SSL_new(packname, ctx, debug, ...)
-        SV* packname
-        SSL_CTX* ctx
-        SV* debug
-        PREINIT:
-        SSL* ssl;
-        CODE:
-           ssl = SSL_new(ctx);
-           SSL_set_connect_state(ssl);
-           /* The set mode is necessary so the SSL connection can
-            * survive a renegotiated cipher that results from
-            * modssl VerifyClient config changing between
-            * VirtualHost & some other config block.  At modssl
-            * this would be a [trace] ssl message:
-            *  "Changed client verification type will force renegotiation"
-            * -- jc 6/28/2001
-            */
-#ifdef SSL_MODE_AUTO_RETRY
-           SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
-#endif
-           RETVAL = ssl;
-           if(SvTRUE(debug)) {
-             SSL_set_info_callback(RETVAL,InfoCallback);
-           }
-           if (items > 2) {
-               PerlIO* io = IoIFP(sv_2io(ST(3)));
+SSL_new(package, ctx, debug, ...)
+    SV *package
+    SSL_CTX *ctx
+    SV *debug
+
+    PREINIT:
+        SSL *ssl;
+
+    CODE:
+        ssl = SSL_new(ctx);
+        SSL_set_connect_state(ssl);
+        SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+
+        if (SvTRUE(debug)) {
+            SSL_set_info_callback(ssl, info_callback);
+        }
+
+        if (items > 2) {
+            PerlIO *io = IoIFP(sv_2io(ST(3)));
 #ifdef _WIN32
-               SSL_set_fd(RETVAL, _get_osfhandle(PerlIO_fileno(io)));
+            int fd = _get_osfhandle(PerlIO_fileno(io));
 #else
-               SSL_set_fd(RETVAL, PerlIO_fileno(io));
+            int fd = PerlIO_fileno(io);
 #endif
-           }
+            SSL_set_fd(ssl, fd);
+        }
+        RETVAL = ssl;
+
         OUTPUT:
-           RETVAL
+            RETVAL
 
 void
 SSL_free(ssl)

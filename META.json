@@ -7,7 +7,7 @@
       "Gisle Aas"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.96, CPAN::Meta::Converter version 2.140640",
+   "generated_by" : "ExtUtils::MakeMaker version 7, CPAN::Meta::Converter version 2.142690",
    "keywords" : [
       "lwp",
       "lwp-useragent",
@@ -47,19 +47,20 @@
       },
       "runtime" : {
          "requires" : {
+            "Bytes::Random::Secure" : "0.28",
             "LWP::Protocol::https" : "6.02",
             "MIME::Base64" : "0",
             "perl" : "5.006"
          }
       }
    },
-   "release_status" : "stable",
+   "release_status" : "testing",
    "resources" : {
       "repository" : {
          "url" : "https://github.com/nanis/Crypt-SSLeay"
       }
    },
-   "version" : "0.72",
+   "version" : "0.73_03",
    "x_build" : {
       "recommends" : {
          "Devel::CheckLib" : "0.99"

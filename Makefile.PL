@@ -10,8 +10,7 @@ use Try::Tiny;
 
 use inc::IO::Interactive::Tiny;
 
-caller
-    or run(\@ARGV, [qw{ssl crypto ssl32 ssleay32 eay32 libeay32 z}]);
+run(\@ARGV, [qw{ssl crypto ssl32 ssleay32 eay32 libeay32 z}]);
 
 sub run {
     my $argv = shift;
@@ -154,6 +153,7 @@ sub run {
         },
 
         PREREQ_PM => {
+            'Bytes::Random::Secure' => '0.28',
             'LWP::Protocol::https' => '6.02',
             'MIME::Base64' => 0, # for Net::SSL
         },
