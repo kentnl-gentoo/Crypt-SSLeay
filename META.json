@@ -60,7 +60,7 @@
          "url" : "https://github.com/nanis/Crypt-SSLeay"
       }
    },
-   "version" : "0.73_03",
+   "version" : "0.73_04",
    "x_build" : {
       "recommends" : {
          "Devel::CheckLib" : "0.99"
