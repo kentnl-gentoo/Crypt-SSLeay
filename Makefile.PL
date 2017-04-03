@@ -2,13 +2,15 @@ use 5.006;
 use strict;
 use warnings;
 
+use Config;
 use ExtUtils::CBuilder;
 use ExtUtils::MakeMaker;
+use File::Spec::Functions qw( catfile rel2abs );
 use Getopt::Long qw( GetOptionsFromArray );
-use Path::Class;
-use Try::Tiny;
 
-use inc::IO::Interactive::Tiny;
+unless( require( catfile qw(inc IO Interactive Tiny.pm) ) ) {
+    die 'Your distribution is incomplete: Failed to load bundled IO::Interactive::Tiny';
+}
 
 run(\@ARGV, [qw{ssl crypto ssl32 ssleay32 eay32 libeay32 z}]);
 
@@ -35,6 +37,7 @@ sub run {
         \%opt,
         'incpath=s',
         'libpath=s',
+        'openssl-prefix=s',
         'live-tests!',
         'static',
         'verbose!',
@@ -44,42 +47,23 @@ sub run {
         $opt{verbose} = 1;
     }
 
-    if (
-        (not exists $opt{incpath}) and
-        (exists $ENV{OPENSSL_INCLUDE})
-    )
-    {
-        $opt{incpath} = $ENV{OPENSSL_INCLUDE};
-    }
+    $opt{incpath} = select_first_realpath(
+        $opt{incpath},
+        $ENV{OPENSSL_INCLUDE},
+        catfile($ENV{OPENSSL_PREFIX}, 'include'),
+    );
 
-    if (
-        (not exists $opt{libpath}) and
-        (exists $ENV{OPENSSL_LIB})
-    )
-    {
-        $opt{libpath} = $ENV{OPENSSL_LIB};
-    }
-
-    # Address RT #78848 and RT #88269
-
-    for my $arg (qw(incpath libpath)) {
-        next unless exists $opt{$arg};
-        my $path = $opt{$arg};
-
-        try {
-            $opt{$arg} = file($path)->absolute->resolve
-        }
-        catch {
-            print "Failed to resolve '$arg=$path': $_\n";
-            exit 0;
-        };
-    }
-
-    $libs = filter_libs(\%opt, $libs);
+    $opt{libpath} = select_first_realpath(
+        $opt{libpath},
+        $ENV{OPENSSL_LIB},
+        catfile($ENV{OPENSSL_PREFIX}, 'lib'),
+    );
 
     unless ($ENV{AUTOMATED_TESTING}) {
         show_do_you_need_crypt_ssleay();
     }
+
+    $libs = filter_libs(\%opt, $libs);
 
     my $my_openssl_version_cmd = eval {
         build_openssl_version(\%opt, 'openssl-version.c');
@@ -92,12 +76,9 @@ sub run {
 
     show_cmd_output($my_openssl_version_cmd);
 
-    # No live tests by default
     if ($ENV{PERL_MM_USE_DEFAULT}) {
         $opt{'live-tests'} = 0;
     }
-    # otherwise, only check other ways of requesting live tests if command
-    # line option was not given
     elsif (not exists $opt{'live-tests'}) {
         if (exists $ENV{CRYPT_SSLEAY_LIVE_TEST_WANTED}) {
             $opt{'live-tests'} = $ENV{CRYPT_SSLEAY_LIVE_TEST_WANTED};
@@ -141,15 +122,14 @@ sub run {
         ($opt{static} ? (LINK_TYPE => 'static') : ()),
 
         TEST_REQUIRES => {
-            'Try::Tiny' => '0.19',
             'Test::More' => '0.19',
+            'Try::Tiny' => '0.19',
         },
 
         CONFIGURE_REQUIRES => {
+            'Devel::CheckLib' => '1.09',
             'ExtUtils::CBuilder' => '0.280205',
             'Getopt::Long' => 0,
-            'Path::Class' => '0.26',
-            'Try::Tiny' => '0.19',
         },
 
         PREREQ_PM => {
@@ -238,11 +218,16 @@ sub write_test_config {
     my $file = shift;
     my $config = shift;
 
-    file($file)->spew(
-        [
-            map sprintf("%s\t%s\n", $_, $config->{$_}), sort keys %$config
-        ]
-    );
+    open my $fh, '>', $file
+        or die "Failed to open '$file' to write config: $!";
+
+    for my $k ( sort keys %$config) {
+        print join("\t", $k, $config->{$k}), "\n";
+    }
+
+    close $fh
+        or die "Failed to close '$file' after writing config: $!";
+
     return;
 }
 
@@ -276,7 +261,15 @@ sub build_openssl_version {
         objects => $object,
     );
 
-    return file($executable)->absolute->resolve;
+    -e $executable
+        and return rel2abs($executable);
+
+    return;
+}
+
+sub select_first_realpath {
+    my ($ret) = map rel2abs($_), grep defined && -d, @_;
+    $ret;
 }
 
 sub filter_libs {
@@ -285,15 +278,13 @@ sub filter_libs {
 
     return $libs unless eval {
         require Devel::CheckLib;
-        Devel::CheckLib->import;
         1;
     };
 
     my @found;
-
     for my $lib (@$libs) {
        eval {
-           assert_lib(
+           Devel::CheckLib::assert_lib(
                 debug => ($opt->{verbose} ? 1 : 0),
                 lib => $lib,
                 header => 'openssl/ssl.h',
